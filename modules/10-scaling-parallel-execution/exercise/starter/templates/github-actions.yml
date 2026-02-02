@@ -1,0 +1,140 @@
+# GitHub Actions - Claude Code Batch Processing
+# This workflow runs Claude Code in headless mode for automated batch jobs
+
+name: Claude Batch Processing
+
+on:
+  # Run on schedule (e.g., nightly)
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM daily
+  
+  # Manual trigger with parameters
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Processing task to execute'
+        required: true
+        default: 'modernize'
+        type: choice
+        options:
+          - modernize
+          - security-scan
+          - refactor
+          - document
+      source_dir:
+        description: 'Source directory to process'
+        required: true
+        default: './src'
+      cost_limit:
+        description: 'Maximum cost in USD'
+        required: true
+        default: '50.00'
+
+jobs:
+  batch-process:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better context
+
+      # Setup Node.js (required for some MCP servers)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Install Claude Code CLI
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Configure MCP servers (optional)
+      - name: Setup MCP Configuration
+        run: |
+          mkdir -p ~/.config/claude
+          cat > ~/.config/claude/mcp.json << 'EOF'
+          {
+            "mcpServers": {
+              "filesystem": {
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
+              }
+            }
+          }
+          EOF
+
+      # Run batch processing
+      - name: Execute Batch Job
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          COST_LIMIT: ${{ github.event.inputs.cost_limit || '50.00' }}
+          SOURCE_DIR: ${{ github.event.inputs.source_dir || './src' }}
+        run: |
+          echo "🚀 Starting batch processing..."
+          echo "Task: ${{ github.event.inputs.task || 'modernize' }}"
+          echo "Source: $SOURCE_DIR"
+          echo "Cost Limit: $COST_LIMIT"
+          
+          # Run batch processor
+          npx ts-node ./batch-modernizer.ts \
+            --source "$SOURCE_DIR" \
+            --cost-limit "$COST_LIMIT" \
+            --output ./results/ \
+            2>&1 | tee processing.log
+
+      # Upload results as artifacts
+      - name: Upload Processing Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-results-${{ github.run_id }}
+          path: |
+            ./results/
+            ./checkpoint.json
+            ./report.json
+            ./processing.log
+          retention-days: 30
+
+      # Create PR with changes (if applicable)
+      - name: Create Pull Request
+        if: github.event.inputs.task == 'modernize' || github.event.inputs.task == 'refactor'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: ' Automated batch processing: ${{ github.event.inputs.task }}'
+          title: ' Batch: ${{ github.event.inputs.task }} processing results'
+          body: |
+            ## Automated Batch Processing Results
+            
+            - **Task**: ${{ github.event.inputs.task }}
+            - **Source Directory**: ${{ github.event.inputs.source_dir }}
+            - **Cost Limit**: $${{ github.event.inputs.cost_limit }}
+            - **Timestamp**: ${{ github.event.created_at }}
+            
+            ### Summary
+            See attached artifacts for detailed report.
+          branch: claude-batch/${{ github.event.inputs.task }}-${{ github.run_id }}
+          delete-branch: true
+
+      # Post summary to job output
+      - name: Job Summary
+        run: |
+          echo "## 📊 Batch Processing Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Task**: ${{ github.event.inputs.task || 'modernize' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: ${{ github.event.inputs.source_dir || './src' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cost Limit**: $${{ github.event.inputs.cost_limit || '50.00' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Results](./results/)" >> $GITHUB_STEP_SUMMARY
+
+      # Cleanup on failure
+      - name: Cleanup on Failure
+        if: failure()
+        run: |
+          echo "⚠️ Batch processing failed. Check logs for details."
+          # Preserve checkpoint for resume
+          if [ -f ./checkpoint.json ]; then
+            echo "Checkpoint preserved for resume"
+          fi

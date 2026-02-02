@@ -1,0 +1,22 @@
+// config.json - Sample config file with secrets
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "username": "admin",
+    "password": "supersecretpassword123",
+    "name": "production_db"
+  },
+  "api_keys": {
+    "stripe": "PLACEHOLDER_STRIPE_KEY_NOT_REAL",
+    "aws": {
+      "access_key": "PLACEHOLDER_AWS_KEY_NOT_REAL",
+      "secret_key": "PLACEHOLDER_AWS_SECRET_NOT_REAL"
+    },
+    "sendgrid": "SG.1234567890abcdef.EXAMPLE"
+  },
+  "jwt": {
+    "secret": "my-jwt-secret-key-dont-share",
+    "expiresIn": "24h"
+  }
+}
