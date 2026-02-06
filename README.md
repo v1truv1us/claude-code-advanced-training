@@ -41,6 +41,7 @@ claude-code-advanced-training/
 │   └── ...
 ├── exercises/                  # Additional comprehensive labs
 ├── resources/                  # Templates and reference materials
+│   ├── reading-list.md         # Canonical sources to keep curriculum aligned
 │   ├── templates/
 │   ├── examples/
 │   └── cheat-sheets/
