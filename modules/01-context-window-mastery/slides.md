@@ -47,11 +47,11 @@ Context: ████████░░ 3.2k/10k tokens
 
 **Commands to Monitor**
 ```bash
-# Check current context
-/memory
+# Check current context health/size
+/context
 
-# See conversation history
-/history
+# Edit/view memory files (CLAUDE.md, rules, etc.)
+/memory
 ```
 
 **Signs of Context Bloat**
@@ -199,8 +199,7 @@ Recent: API changes, bug fix, test failures, config updates
 
 Step 1: Identify Bloat Sources
 ```bash
-/memory  # Show loaded memories
-/history  # Review conversation
+/context  # Check context health/size
 ```
 
 Step 2: Strategic Compaction
@@ -293,7 +292,7 @@ The key insight is that most developers unknowingly operate with bloated context
 ### [2:00-4:00] Monitoring & Diagnosis
 "Before we can optimize context, we need to measure it. Watch for these warning signs: Claude asking about things you just explained, slower response times, or the context bar showing mostly red.
 
-The context bar is your dashboard - if it's consistently over 70% full, you're definitely losing efficiency. Use `/memory` to see what's loaded, and `/history` to review the conversation buildup.
+The context bar is your dashboard - if it's consistently over 70% full, you're definitely losing efficiency. Use `/context` to check context health/size, and `/memory` when you need to edit/view memory files (CLAUDE.md, rules, etc.).
 
 Get into the habit of checking context like you check your phone's battery. A quick glance can tell you whether it's time for a reset."
 
@@ -316,7 +315,7 @@ This pattern scales beautifully. You can run multiple subagents in parallel, the
 ### [8:30-10:30] Live Demo
 "Let's see this in action. I'm starting with a conversation that's already at 8.5k tokens - you can see it's mostly red. This happened through a typical development session: some API changes, a bug fix, test failures, configuration updates.
 
-First, I'll check what's loaded with `/memory`. Then I'll use `/compact Focus on the API authentication bug` to strip away everything except what matters for the current task. Watch the context bar drop to just 3.2k tokens.
+First, I’ll check context health with `/context`. Then I’ll use `/compact Focus on the API authentication bug` to strip away everything except what matters for the current task. Watch the context bar drop to just 3.2k tokens.
 
 Now I'll delegate the investigation to a subagent: 'Use a subagent to find similar authentication bugs in our codebase history.' The subagent will read through git history, find patterns, but return only a concise summary.
 
@@ -425,17 +424,17 @@ In our next module, we'll build on this foundation with verification strategies 
 ## 📚 Additional Resources
 
 ### Documentation Links
-- [Memory Management Guide](https://code.claude.com/docs/en/memory)
-- [Context Window Documentation](https://code.claude.com/docs/en/how-claude-code-works#context)
-- [Subagents Reference](https://code.claude.com/docs/en/sub-agents)
+- [Memory / CLAUDE.md / rules](https://code.claude.com/docs/en/memory)
+- [Context window](https://code.claude.com/docs/en/how-claude-code-works#context)
+- [Subagents](https://code.claude.com/docs/en/sub-agents)
 
 ### Tools & Commands
 ```bash
 # Essential context commands
 /clear           # Reset conversation
 /compact <msg>   # Summarize with focus
-/memory          # Show loaded memories
-/history         # Review conversation
+/context         # Context health/size check
+/memory          # Edit/view memory files (CLAUDE.md, rules, etc.)
 ```
 
 ### Community Resources
@@ -451,7 +450,7 @@ In our next module, we'll build on this foundation with verification strategies 
 | Keep some context | Focused summary | `/compact Focus on X` |
 | Need research | Delegate to subagent | "Use subagent to investigate Y" |
 | Bloated context | Emergency cleanup | `/compact Current task only` |
-| Check usage | Monitor health | `/memory` |
+| Check usage | Monitor health | `/context` |
 
 ---
 
