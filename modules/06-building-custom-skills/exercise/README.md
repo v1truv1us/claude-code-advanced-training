@@ -55,7 +55,7 @@ By the end of these exercises, you should have:
 
 - Use the `starter/` directory for templates and guidance
 - Reference Module 06 video content for patterns and examples
-- Check `solutions/` for complete implementations when stuck
+- Check `solution/` for complete implementations when stuck
 - Review security checklist before finalizing any skill
 
 ## Support

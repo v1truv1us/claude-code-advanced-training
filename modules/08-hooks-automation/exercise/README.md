@@ -33,8 +33,8 @@ Enhance with:
 ## 🚀 Success Criteria
 
 ### Functional Requirements
-✅ Pre-save hook blocks files with secrets  
-✅ Pre-commit hook runs tests and checks coverage  
+✅ PreToolUse hook blocks `Write`/`Edit` when secrets are detected  
+✅ PostToolUse hook runs tests/lint/coverage after edits (your team standard)  
 ✅ Clear error messages with file/line information  
 ✅ Suggestions for fixing issues  
 ✅ Hooks complete in under 10 seconds  
@@ -48,10 +48,9 @@ Enhance with:
 ## 📁 Starter Files
 
 See `starter/` directory for:
-- `hooks/` - Starter hook configurations
-- `scripts/` - Partial hook script implementations
+- `settings.json` - Starter Claude Code hook configuration
+- `scripts/` - Hook script implementations
 - `sample-code/` - Files to test hooks with
-- `tests/` - Sample test files
 
 ## 🔧 Implementation Tips
 
@@ -115,11 +114,11 @@ After completing this exercise, you'll understand:
 
 ## ✅ Checklist
 
-- [ ] Created pre-save hook that detects secrets
+- [ ] Created PreToolUse hook that detects secrets
 - [ ] Added at least 5 secret patterns (AWS, password, API key, etc.)
-- [ ] Pre-save hook includes line numbers in errors
-- [ ] Created pre-commit hook that runs tests
-- [ ] Pre-commit hook verifies 80% coverage threshold
+- [ ] PreToolUse hook includes line numbers in errors
+- [ ] Created PostToolUse hook that runs tests
+- [ ] PostToolUse hook verifies 80% coverage threshold (or your team standard)
 - [ ] Added file filtering (only check relevant files)
 - [ ] Implemented incremental checking (only changed files)
 - [ ] Added performance logging

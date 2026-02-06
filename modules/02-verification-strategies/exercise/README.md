@@ -153,45 +153,22 @@ describe('Performance', () => {
 - Performance characteristics
 - Security considerations
 
-## 📁 Files Structure
+## 📁 Files Structure (what exists in this repo)
 
-### Test Files
-```
-tests/
-├── comment.test.js          # Main test suite
-├── comment.integration.test.js  # Integration tests
-├── comment.e2e.test.js        # End-to-end tests
-└── fixtures/
-    ├── validComments.json     # Test data
-    └── profanityList.json     # Profanity filter test data
-```
+This exercise includes a minimal runnable scaffold:
 
-### Implementation Files
 ```
-src/
-├── models/
-│   └── Comment.js           # Comment data model
-├── services/
-│   ├── commentService.js     # Business logic
-│   ├── moderationService.js # Profanity filtering
-│   └── rateLimitService.js  # Rate limiting
-├── controllers/
-│   └── commentController.js   # API endpoints
-├── middleware/
-│   └── validation.js       # Input validation
-└── utils/
-    ├── profanityFilter.js   # Efficient profanity detection
-    └── database.js         # Database operations
+starter/
+  package.json
+  src/commentService.js
+  tests/comment.test.js
+solution/
+  package.json
+  src/commentService.js
+  tests/comment.test.js
 ```
 
-### Documentation Files
-```
-docs/
-├── comment-system-api.md     # API documentation
-├── database-schema.md        # Database design
-├── performance-guide.md      # Optimization techniques
-└── security-considerations.md # Security best practices
-```
+You can expand the scaffold (integration tests, fixtures, docs) as stretch goals, but you are not required to build a full database-backed system to complete the exercise.
 
 ## 🎯 Success Criteria
 
@@ -284,12 +261,12 @@ test('comment creation performance is optimized', async () => {
 # Navigate to exercise directory
 cd claude-code-advanced-training/modules/02-verification-strategies/exercise
 
-# Create test file structure
-mkdir -p tests services controllers middleware utils models
-
-# Start with test suite
-touch tests/comment.test.js
+# Run the starter tests (they should fail initially)
+cd starter
+npm test
 ```
+
+Then implement the service via strict red → green → refactor, expanding the test suite as you go.
 
 **First Command to Try:**
 ```bash

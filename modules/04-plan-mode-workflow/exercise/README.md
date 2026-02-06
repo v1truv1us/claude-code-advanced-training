@@ -19,9 +19,9 @@ The current comment system is basic and needs significant enhancement.
 ### Task: Comprehensive Codebase Analysis (30 minutes)
 **Objective**: Understand the current comment system, data flow, and UI components
 
-**Instructions to Claude**:
+**Instructions to Claude** (start Claude Code in Plan Mode using `claude --permission-mode plan`, or toggle to Plan Mode via Shift+Tab):
 ```
-/permission-mode plan
+[Plan Mode]
 
 I need to add a comprehensive comment moderation feature to our React blog. Please analyze the current codebase in Plan Mode to understand:
 
@@ -91,6 +91,7 @@ Focus on:
 - Testing and validation methodology
 - Rollback and deployment procedures
 
+```
 ### Expected Deliverables:
 - Step-by-step implementation plan
 - Architectural diagrams and flow descriptions
@@ -129,6 +130,7 @@ Switch to Normal Mode and implement the comment moderation feature following the
 
 Ensure all code follows the project's established patterns and includes appropriate tests.
 
+```
 ### Success Criteria for Phase 3:
 - [ ] All planned features are implemented
 - [ ] Code follows project coding standards
@@ -158,6 +160,7 @@ Create comprehensive documentation for the new comment moderation system includi
 
 Commit all changes with descriptive messages and prepare pull request for review.
 
+```
 ### Success Criteria for Phase 4:
 - [ ] All code is committed to version control
 - [ ] Documentation is comprehensive and up-to-date
@@ -168,15 +171,15 @@ Commit all changes with descriptive messages and prepare pull request for review
 
 ---
 
-## 📊 Files Structure for This Exercise
+## 📊 Files to Create for This Exercise
+
+Create these files **in this directory** as you work:
 
 ```
-exercise-04-1/
-├── README.md                 # Exercise instructions
-├── plan-analysis.md          # Your plan analysis
-├── implementation-plan.md      # Claude's generated plan
-├── implementation-results/    # Actual implementation results
-└── reflection.md             # Your lessons learned
+plan-analysis.md
+implementation-plan.md
+implementation-results/
+reflection.md
 
 ## 🎯 Evaluation Criteria
 
@@ -276,3 +279,4 @@ claude --permission-mode plan
 - [ ] Team handoff successful
 
 **Overall Exercise Success**: Demonstrate mastery of Plan Mode workflow for complex feature development.
+```

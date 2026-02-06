@@ -34,7 +34,7 @@ Implement:
 ## 🚀 Success Criteria
 
 ### Functional Requirements
-✅ Discovers 50+ files in sample directory  
+✅ Discovers legacy patterns in the provided sample directory  
 ✅ Processes files in parallel (4+ concurrent workers)  
 ✅ Completes batch in under 5 minutes  
 ✅ Handles failures without stopping entire batch  
@@ -52,7 +52,6 @@ Implement:
 See `starter/` directory for:
 - `legacy-code/` - Sample legacy JavaScript files to modernize
 - `batch-starter.ts` - Partial implementation
-- `workers/` - Worker subagent templates
 - `templates/` - CI/CD integration templates
 
 ## 🔧 Implementation Tips
