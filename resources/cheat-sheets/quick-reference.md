@@ -50,6 +50,7 @@ Common built-ins (from https://code.claude.com/docs/en/interactive-mode):
 - `/model` — change model (and effort level for Opus 4.6)
 - `/permissions` — view/update tool permissions
 - `/mcp` — manage MCP connections + OAuth
+- `/context` — context health/size check
 - `/memory` — edit CLAUDE.md “memory” files
 - `/resume [session]` — resume by id/name or open session picker
 - `/rename <name>` — rename current session
