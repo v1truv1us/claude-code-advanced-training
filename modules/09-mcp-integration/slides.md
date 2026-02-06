@@ -1,648 +1,348 @@
-# Module 09: MCP Integration
+# Module 09: MCP Integration (Claude Code)
 
 ## 📋 Slide Deck
 
 ### Slide 1: Title Slide
-**Module 09: MCP Integration**
-*Connecting Claude Code to External Services and Data Sources*
-
-### Slide 2: Learning Objectives
-By end of this module, you will be able to:
-- Understand the Model Context Protocol (MCP) architecture
-- Configure MCP servers for various data sources
-- Implement authentication patterns for secure integrations
-- Build custom MCP servers for domain-specific needs
-- Handle errors and edge cases in MCP workflows
-- Apply security best practices for external connections
-
-### Slide 3: What is MCP?
-
-**Definition**
-MCP (Model Context Protocol) is an open protocol that standardizes how applications provide context to LLMs. It enables Claude Code to connect to external data sources, tools, and services.
-
-**Key Capabilities**
-- Access databases, APIs, and files
-- Execute tools and commands on external systems
-- Retrieve real-time data
-- Integrate with enterprise systems
-- Extend Claude's capabilities beyond code
-
-**Architecture Overview**
-```
-Claude Code ←→ MCP Client ←→ MCP Server ←→ Data Source
-                    ↑
-              Standardized Protocol
-              (Resources, Tools, Prompts)
-```
-
-**Why MCP Matters**
-- Universal integration standard
-- Vendor-neutral protocol
-- Secure and auditable
-- Enables AI to work with your existing infrastructure
-
-### Slide 4: MCP Core Concepts
-
-**Three Primitives**
-
-1. **Resources** - Read-only data access
-   ```typescript
-   // Resource example: Database schema
-   {
-     uri: "postgres://localhost/mydb/schema",
-     name: "Database Schema",
-     mimeType: "application/json",
-     text: JSON.stringify(schema)
-   }
-   ```
-
-2. **Tools** - Executable functions
-   ```typescript
-   // Tool example: Execute SQL query
-   {
-     name: "execute_sql",
-     description: "Run a SQL query against the database",
-     parameters: {
-       type: "object",
-       properties: {
-         query: { type: "string" },
-         maxRows: { type: "number", default: 100 }
-       }
-     }
-   }
-   ```
-
-3. **Prompts** - Reusable templates
-   ```typescript
-   // Prompt example: Database migration
-   {
-     name: "generate_migration",
-     description: "Generate database migration script",
-     arguments: [{
-       name: "change_description",
-       description: "What needs to change",
-       required: true
-     }]
-   }
-   ```
-
-**MCP Server Types**
-
-| Type | Use Case | Example |
-|------|----------|---------|
-| Built-in | Common integrations | Filesystem, SQLite |
-| Third-party | Popular services | GitHub, Slack, AWS |
-| Custom | Domain-specific | Internal APIs, legacy systems |
-
-### Slide 5: Built-in MCP Servers
-
-**Filesystem Server**
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/project"]
-    }
-  }
-}
-```
-
-**Capabilities:**
-- Read/write files
-- List directories
-- Search file contents
-- Watch for changes
-
-**Use Cases:**
-- Access project files outside workspace
-- Work with multiple repositories
-- Process large file sets
-
-**SQLite Server**
-```json
-{
-  "mcpServers": {
-    "sqlite": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sqlite", "/path/to/db.sqlite"]
-    }
-  }
-}
-```
-
-**Capabilities:**
-- Execute SQL queries
-- Read table schemas
-- Database migrations
-- Data analysis
-
-### Slide 6: Third-Party MCP Servers
-
-**GitHub Integration**
-```json
-{
-  "mcpServers": {
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-**Available Tools:**
-- Search repositories
-- Create/manage issues
-- Review pull requests
-- Read file contents
-- List commits
-
-**Slack Integration**
-```json
-{
-  "mcpServers": {
-    "slack": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-slack"],
-      "env": {
-        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
-        "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"
-      }
-    }
-  }
-}
-```
-
-**Available Tools:**
-- Send messages to channels
-- Read channel history
-- List users and channels
-- Post notifications
-
-**PostgreSQL Integration**
-```json
-{
-  "mcpServers": {
-    "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", 
-               "postgresql://user:pass@localhost/db"]
-    }
-  }
-}
-```
-
-### Slide 7: Configuring MCP in Claude Code
-
-**Global Configuration**
-```json
-// ~/.config/claude/settings.json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-**Project-Specific Configuration**
-```json
-// .claude/mcp.json (in project root)
-{
-  "mcpServers": {
-    "project-db": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", 
-               "postgresql://localhost/project_db"]
-    },
-    "local-files": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]
-    }
-  }
-}
-```
-
-**Environment Variables**
-```bash
-# Use env vars for sensitive data
-export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
-export DATABASE_URL="postgresql://user:pass@localhost/db"
-export SLACK_BOT_TOKEN="xoxb-xxxxxxxxxx"
-```
-
-### Slide 8: Authentication Patterns
-
-**Token-Based Authentication**
-```json
-{
-  "mcpServers": {
-    "api-service": {
-      "command": "npx",
-      "args": ["-y", "@company/mcp-server-api"],
-      "env": {
-        "API_TOKEN": "${API_TOKEN}",
-        "API_BASE_URL": "https://api.company.com/v1"
-      }
-    }
-  }
-}
-```
-
-**OAuth 2.0 Flow**
-```json
-{
-  "mcpServers": {
-    "google-sheets": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-gdrive"],
-      "env": {
-        "GOOGLE_CLIENT_ID": "${GOOGLE_CLIENT_ID}",
-        "GOOGLE_CLIENT_SECRET": "${GOOGLE_CLIENT_SECRET}",
-        "GOOGLE_REFRESH_TOKEN": "${GOOGLE_REFRESH_TOKEN}"
-      }
-    }
-  }
-}
-```
-
-**Certificate-Based Auth**
-```json
-{
-  "mcpServers": {
-    "internal-api": {
-      "command": "npx",
-      "args": ["-y", "@company/mcp-internal-api"],
-      "env": {
-        "CLIENT_CERT_PATH": "${HOME}/.certs/client.crt",
-        "CLIENT_KEY_PATH": "${HOME}/.certs/client.key",
-        "CA_CERT_PATH": "${HOME}/.certs/ca.crt"
-      }
-    }
-  }
-}
-```
-
-**Credential Management Best Practices**
-1. Never commit credentials to version control
-2. Use environment variables for all secrets
-3. Rotate tokens regularly
-4. Use least-privilege access tokens
-5. Audit MCP server access logs
-
-### Slide 9: Using MCP Tools in Workflows
-
-**Natural Language Invocation**
-```
-User: "List all issues in the repository"
-→ Claude uses github server
-→ Calls search_issues tool
-→ Returns formatted results
-```
-
-**Explicit Tool Usage**
-```typescript
-// Direct tool invocation in scripts
-const issues = await mcp.github.callTool("search_issues", {
-  query: "is:open is:issue label:bug",
-  sort: "updated",
-  order: "desc"
-});
-```
-
-**Multi-Server Workflows**
-```typescript
-// Cross-server data integration
-// 1. Get data from database
-const users = await mcp.postgres.callTool("query", {
-  sql: "SELECT * FROM users WHERE active = true"
-});
-
-// 2. Post summary to Slack
-await mcp.slack.callTool("post_message", {
-  channel: "#analytics",
-  text: `Daily user count: ${users.length}`
-});
-
-// 3. Create GitHub issue for tracking
-await mcp.github.callTool("create_issue", {
-  title: `Daily Report: ${users.length} active users`,
-  body: generateReportBody(users),
-  labels: ["daily-report", "automated"]
-});
-```
-
-### Slide 10: Error Handling & Resilience
-
-**Common MCP Errors**
-
-1. **Connection Failures**
-```typescript
-try {
-  const result = await mcp.server.callTool("query", params);
-} catch (error) {
-  if (error.code === 'ECONNREFUSED') {
-    console.error('MCP server not running. Start it with: npm run mcp:start');
-  }
-}
-```
-
-2. **Authentication Errors**
-```typescript
-try {
-  await mcp.github.callTool("create_issue", params);
-} catch (error) {
-  if (error.status === 401) {
-    console.error('GitHub token expired or invalid. Run: gh auth login');
-  }
-}
-```
-
-3. **Rate Limiting**
-```typescript
-// Implement exponential backoff
-async function resilientCall(tool: string, params: any, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await mcp.server.callTool(tool, params);
-    } catch (error) {
-      if (error.status === 429 && i < retries - 1) {
-        const delay = Math.pow(2, i) * 1000;
-        await sleep(delay);
-        continue;
-      }
-      throw error;
-    }
-  }
-}
-```
-
-**Graceful Degradation**
-```typescript
-async function getDataWithFallback() {
-  try {
-    // Try MCP first
-    return await mcp.database.callTool("query", { sql: "SELECT * FROM data" });
-  } catch (error) {
-    console.warn('MCP unavailable, using local cache');
-    return await readLocalCache();
-  }
-}
-```
-
-### Slide 11: Building Custom MCP Servers
-
-**Basic Server Structure**
-```typescript
-// mcp-server.ts
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-
-const server = new Server(
-  {
-    name: 'my-custom-server',
-    version: '1.0.0'
-  },
-  {
-    capabilities: {
-      resources: {},
-      tools: {}
-    }
-  }
-);
-
-// Define tools
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
-      {
-        name: 'custom_query',
-        description: 'Execute custom business logic',
-        parameters: {
-          type: 'object',
-          properties: {
-            input: { type: 'string' }
-          }
-        }
-      }
-    ]
-  };
-});
-
-// Handle tool execution
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name === 'custom_query') {
-    const result = await executeCustomLogic(request.params.arguments);
-    return {
-      content: [{ type: 'text', text: JSON.stringify(result) }]
-    };
-  }
-});
-
-// Start server
-const transport = new StdioServerTransport();
-await server.connect(transport);
-```
-
-**Custom Resource Provider**
-```typescript
-// Expose internal API as MCP resource
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  return {
-    resources: [
-      {
-        uri: 'internal-api://users',
-        name: 'User Directory',
-        mimeType: 'application/json'
-      }
-    ]
-  };
-});
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  if (request.params.uri === 'internal-api://users') {
-    const users = await fetchInternalUsers();
-    return {
-      contents: [{
-        uri: request.params.uri,
-        mimeType: 'application/json',
-        text: JSON.stringify(users)
-      }]
-    };
-  }
-});
-```
-
-### Slide 12: MCP Security Best Practices
-
-**Network Security**
-```json
-{
-  "mcpServers": {
-    "secure-server": {
-      "command": "npx",
-      "args": ["-y", "@company/mcp-server"],
-      "env": {
-        "API_ENDPOINT": "https://api.internal.company.com",
-        "VERIFY_SSL": "true"
-      }
-    }
-  }
-}
-```
-
-**Access Control**
-```typescript
-// Implement authorization in custom servers
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  // Verify user permissions
-  const user = await authenticateUser(request);
-  
-  if (!user.hasPermission(request.params.name)) {
-    throw new Error('Unauthorized: Insufficient permissions');
-  }
-  
-  return executeTool(request.params);
-});
-```
-
-**Data Sanitization**
-```typescript
-// Validate and sanitize all inputs
-function sanitizeInput(input: string): string {
-  // Remove potentially dangerous characters
-  return input.replace(/[<>\"']/g, '');
-}
-
-// Validate SQL queries
-function validateQuery(query: string): boolean {
-  const dangerous = /(DROP|DELETE|TRUNCATE)\s+/i;
-  return !dangerous.test(query);
-}
-```
-
-**Audit Logging**
-```typescript
-// Log all MCP operations
-async function auditedCall(tool: string, params: any) {
-  const startTime = Date.now();
-  
-  try {
-    const result = await mcp.server.callTool(tool, params);
-    
-    auditLog.info({
-      tool,
-      params: sanitizeForLog(params),
-      duration: Date.now() - startTime,
-      success: true
-    });
-    
-    return result;
-  } catch (error) {
-    auditLog.error({
-      tool,
-      params: sanitizeForLog(params),
-      error: error.message,
-      duration: Date.now() - startTime
-    });
-    throw error;
-  }
-}
-```
-
-### Slide 13: Enterprise Integration Patterns
-
-**Multi-Environment Setup**
-```json
-// .claude/mcp.development.json
-{
-  "mcpServers": {
-    "database": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", 
-               "postgresql://localhost/dev_db"]
-    }
-  }
-}
-
-// .claude/mcp.production.json
-{
-  "mcpServers": {
-    "database": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres", 
-               "postgresql://prod-db.internal:5432/prod_db"],
-      "env": {
-        "SSL_MODE": "require",
-        "SSL_CERT": "${PROD_DB_CERT}"
-      }
-    }
-  }
-}
-```
-
-**Service Mesh Integration**
-```yaml
-# Kubernetes deployment with MCP sidecar
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: claude-workspace
-spec:
-  template:
-    spec:
-      containers:
-        - name: claude
-          image: claude-code:latest
-        - name: mcp-sidecar
-          image: company/mcp-sidecar:latest
-          env:
-            - name: SERVICE_MESH_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: mesh-token
-                  key: token
-```
-
-### Slide 14: Summary & Key Takeaways
-
-**Core Concepts**
-1. **Resources** - Read-only data access
-2. **Tools** - Executable functions  
-3. **Prompts** - Reusable templates
-4. **Servers** - MCP protocol endpoints
-
-**Security Essentials**
-- Use environment variables for secrets
-- Implement least-privilege access
-- Validate all inputs
-- Audit all operations
-- Use TLS for all connections
-
-**Integration Patterns**
-- Built-in servers for common needs
-- Third-party servers for popular services
-- Custom servers for domain-specific needs
-- Multi-server orchestration for complex workflows
-
-**Impact**
-- Access any data source or API
-- Automate cross-system workflows
-- Extend Claude's capabilities infinitely
-- Maintain security and auditability
+**Module 09: MCP Integration**  
+*Connecting Claude Code to external tools & data sources via the Model Context Protocol (MCP)*
 
 ---
-*Video Duration: 12 minutes*
+
+### Slide 2: Learning Objectives
+By the end of this module, you will be able to:
+- Explain what MCP is and what Claude Code gets from it (tools, resources, prompts)
+- Add/manage MCP servers with the Claude CLI (`claude mcp add/list/get/remove`)
+- Choose the right **transport** (stdio vs HTTP vs SSE)
+- Choose the right **scope** (local vs project vs user) and understand precedence
+- Use **.mcp.json** safely with env-var expansion and team-friendly patterns
+- Understand Claude Code’s **approval flow** for project-scoped servers
+- Apply safe defaults: least privilege, output limits, allow/deny policies
+
+Docs:
+- Claude Code MCP: https://code.claude.com/docs/en/mcp
+- MCP intro: https://modelcontextprotocol.io/introduction
+
+---
+
+### Slide 3: MCP in 30 Seconds
+**MCP (Model Context Protocol)** is an open standard that lets Claude Code connect to external systems.
+
+**What MCP servers provide:**
+- **Tools** (actions Claude can run)
+- **Resources** (readable context you can @-mention)
+- **Prompts** (reusable templates exposed as commands)
+
+**Mental model**
+```
+Claude Code  ──(MCP client)──►  MCP Server  ──►  Your API / DB / SaaS / System
+```
+
+Why it matters:
+- Standard integration surface
+- Auditable tool calls
+- Works for local automation and hosted services
+
+---
+
+### Slide 4: Transports (How Claude Talks to Servers)
+Claude Code supports multiple MCP transports:
+
+1) **HTTP (remote)** — *recommended for cloud/remote services*
+```bash
+claude mcp add --transport http notion https://mcp.notion.com/mcp
+
+# with headers
+claude mcp add --transport http secure-api https://api.example.com/mcp \
+  --header "Authorization: Bearer $TOKEN"
+```
+
+2) **SSE (remote)** — server-sent events transport
+```bash
+claude mcp add --transport sse asana https://mcp.asana.com/sse
+```
+
+3) **stdio (local)** — runs a process on your machine
+```bash
+claude mcp add --transport stdio airtable --env AIRTABLE_API_KEY=$AIRTABLE_API_KEY \
+  -- npx -y airtable-mcp-server
+```
+
+Guideline:
+- Prefer **HTTP** for hosted integrations
+- Use **stdio** when the tool needs local filesystem access, local credentials, or custom scripts
+
+Docs: https://code.claude.com/docs/en/mcp#installing-mcp-servers
+
+---
+
+### Slide 5: Core CLI Flows (Add / List / Get / Remove)
+**Add a server**
+```bash
+# http
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/
+
+# sse
+claude mcp add --transport sse my-sse https://example.com/sse
+
+# stdio (note the `--` separator)
+claude mcp add --transport stdio local-db -- npx -y @bytebase/dbhub --help
+```
+
+**Inspect & manage**
+```bash
+claude mcp list
+claude mcp get github
+claude mcp remove github
+```
+
+**Inside Claude Code:** check status and connect/authenticate
+```
+/mcp
+```
+
+Docs: https://code.claude.com/docs/en/mcp#managing-your-servers
+
+---
+
+### Slide 6: Scopes (Where Config Lives) + Precedence
+MCP servers can be installed at different **scopes**:
+
+- **local** (default): private to you *in the current project directory*
+- **project**: stored in **.mcp.json** at repo root (team-shared)
+- **user**: stored in your user config (available across projects)
+
+Examples:
+```bash
+# local (default)
+claude mcp add --transport http stripe https://mcp.stripe.com
+
+# project (team shared)
+claude mcp add --transport http --scope project paypal https://mcp.paypal.com/mcp
+
+# user (cross-project)
+claude mcp add --transport http --scope user hubspot https://mcp.hubspot.com/anthropic
+```
+
+**Precedence when names collide:** local → project → user
+
+Docs: https://code.claude.com/docs/en/mcp#mcp-installation-scopes
+
+---
+
+### Slide 7: .mcp.json (Team-Shareable MCP Config)
+When you add a **project-scoped** server, Claude Code creates/updates a **.mcp.json** at the project root.
+
+Canonical structure:
+```json
+{
+  "mcpServers": {
+    "shared-server": {
+      "command": "/path/to/server",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+```
+
+Remote servers use URL + optional headers:
+```json
+{
+  "mcpServers": {
+    "api-server": {
+      "type": "http",
+      "url": "https://api.example.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${API_KEY}"
+      }
+    }
+  }
+}
+```
+
+**Team rule:** commit .mcp.json, but keep secrets out of git (use env expansion).
+
+Docs: https://code.claude.com/docs/en/mcp#environment-variable-expansion-in-mcpjson
+
+---
+
+### Slide 8: Approval Flow for Project-Scoped Servers
+**Important security behavior:** project-scoped servers in **.mcp.json** require user approval before Claude Code will use them.
+
+Why:
+- A repo could add an MCP server that executes a local command (stdio)
+- Approval acts as a safeguard against supply-chain & repo-trust issues
+
+Reset approvals if you changed your mind:
+```bash
+claude mcp reset-project-choices
+```
+
+Docs: https://code.claude.com/docs/en/mcp#mcp-installation-scopes
+
+---
+
+### Slide 9: Environment Variable Expansion in .mcp.json
+Claude Code expands env vars inside **.mcp.json** so teams can share configs safely.
+
+Supported syntax:
+- `${VAR}`
+- `${VAR:-default}`
+
+Where expansion works:
+- `command`, `args`, `env`
+- `url`, `headers` (for HTTP/SSE)
+
+Example:
+```json
+{
+  "mcpServers": {
+    "internal": {
+      "type": "http",
+      "url": "${API_BASE_URL:-https://api.example.com}/mcp",
+      "headers": {
+        "Authorization": "Bearer ${API_KEY}"
+      }
+    }
+  }
+}
+```
+
+Failure mode:
+- If a required variable is missing and has no default, Claude Code fails to parse the config.
+
+Docs: https://code.claude.com/docs/en/mcp#environment-variable-expansion-in-mcpjson
+
+---
+
+### Slide 10: Safe Patterns for Secrets & Credentials
+**DO**
+- Use `${VAR}` in `.mcp.json` and set secrets via your shell, `.env`, or OS keychain flow
+- Keep **project** scope configs free of secrets (team-safe)
+- Use least-privilege tokens (read-only where possible)
+
+**DON’T**
+- Commit tokens in `.mcp.json`
+- Use powerful tokens for “quick experiments” that end up shared
+
+Recommended layout:
+- `.mcp.json` (committed): server endpoints + *variable references*
+- `.env` (gitignored) or secret manager: actual secret values
+
+---
+
+### Slide 11: Server Output Limits + Tool Search (Scaling)
+Two important scaling features:
+
+1) **MCP output limits**
+- Warn when MCP tool output exceeds ~10k tokens
+- Default maximum ~25k tokens
+- Configurable via environment variable:
+```bash
+export MAX_MCP_OUTPUT_TOKENS=50000
+claude
+```
+
+2) **MCP Tool Search**
+When tool definitions would consume >10% of the context window, Claude Code can defer tool loading and search on-demand.
+
+Control with:
+```bash
+# default
+ENABLE_TOOL_SEARCH=auto claude
+
+# custom threshold
+ENABLE_TOOL_SEARCH=auto:5 claude
+
+# disable
+ENABLE_TOOL_SEARCH=false claude
+```
+
+Docs: https://code.claude.com/docs/en/mcp#mcp-output-limits-and-warnings
+
+---
+
+### Slide 12: Using MCP Resources & Prompts in Claude Code
+**Resources** can be referenced similarly to files using @ mentions (server-dependent):
+- Example: a server might expose `schema://database/orders`
+- You can reference it to ground the conversation
+
+**Prompts** exposed by servers can appear as Claude Code commands.
+
+Key takeaway:
+- MCP isn’t just “tools” — it’s also reusable context and reusable workflows.
+
+Docs:
+- Resources: https://code.claude.com/docs/en/mcp#use-mcp-resources
+- Prompts: https://code.claude.com/docs/en/mcp#use-mcp-prompts-as-commands
+
+---
+
+### Slide 13: Plugins and .mcp.json (Bundled Servers)
+Claude Code plugins can bundle MCP servers:
+- define servers in **.mcp.json** at plugin root, or inline in `plugin.json`
+- servers start automatically when the plugin is enabled
+- changes require a Claude Code restart to apply
+
+Example (plugin root .mcp.json):
+```json
+{
+  "database-tools": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/servers/db-server",
+    "args": ["--config", "${CLAUDE_PLUGIN_ROOT}/config.json"],
+    "env": {
+      "DB_URL": "${DB_URL}"
+    }
+  }
+}
+```
+
+Docs:
+- Plugins + MCP: https://code.claude.com/docs/en/mcp#plugin-provided-mcp-servers
+- Plugin MCP reference: https://code.claude.com/docs/en/plugins-reference#mcp-servers
+
+---
+
+### Slide 14: Managed MCP (Enterprise Guardrails)
+Organizations can centrally manage MCP in two ways:
+
+1) **Exclusive control** with `managed-mcp.json`
+- Deploy a fixed set of servers; users cannot add/modify
+- Locations:
+  - macOS: `/Library/Application Support/ClaudeCode/managed-mcp.json`
+  - Linux/WSL: `/etc/claude-code/managed-mcp.json`
+  - Windows: `C:\\Program Files\\ClaudeCode\\managed-mcp.json`
+
+2) **Policy-based** allowlist/denylist
+- Allow users to add servers but restrict by:
+  - server name
+  - exact stdio command+args
+  - URL pattern (remote)
+
+Docs: https://code.claude.com/docs/en/mcp#managed-mcp-configuration
+
+---
+
+### Slide 15: Safe-by-Default Checklist (Practical)
+Before enabling an MCP server:
+- **Trust boundary**: who controls the server endpoint or the stdio command?
+- **Scope**: choose **project** only when it’s safe for the team and reviewable
+- **Least privilege**: tokens scoped to the minimum permissions
+- **Pin & audit**:
+  - stdio: prefer reviewed binaries, pinned versions, or internal packages
+  - remote: prefer HTTPS, review headers, and keep tokens out of git
+- **Outputs**: cap large outputs; avoid dumping entire DB tables into chat
+
+---
+
+### Slide 16: Summary & Key Takeaways
+- MCP is the standard way to connect Claude Code to tools, data, and workflows
+- Use `claude mcp add/list/get/remove` to manage servers
+- Choose the right transport: **HTTP** (recommended), **SSE**, or **stdio**
+- Scopes matter (local/project/user) and follow local → project → user precedence
+- `.mcp.json` is the team-shareable contract; use env var expansion for safety
+- Expect an approval prompt for project-scoped servers; reset with `claude mcp reset-project-choices`
+
+---
+*Video Duration: ~12 minutes*  
+*Last reviewed: 2026-02-05; align with Claude Code MCP docs.*

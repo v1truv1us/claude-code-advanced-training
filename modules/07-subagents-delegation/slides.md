@@ -3,519 +3,334 @@
 ## 📋 Slide Deck
 
 ### Slide 1: Title Slide
-**Module 07: Subagents & Delegation**
-*Scale Through Specialized Workers and Context Isolation*
+**Module 07: Subagents & Delegation**  
+*Scale work safely with specialized agents and context isolation*
 
 ### Slide 2: Learning Objectives
-By end of this module, you will be able to:
-- Understand subagent architecture and delegation patterns
-- Configure subagents with different tools and models
-- Implement parallel processing for complex workflows
-- Manage context isolation between parent and child agents
-- Debug subagent interactions and failures
-- Apply enterprise security patterns for subagent delegation
+By the end of this module, you will be able to:
+- Explain what subagents are and when to delegate
+- Create **project** and **user** subagents using Markdown + YAML frontmatter
+- Apply **scope precedence** rules so the right subagent is active
+- Configure supported frontmatter fields: `tools`, `disallowedTools`, `model`, `permissionMode`, `skills`, `hooks`, `memory`
+- Design robust delegation patterns (fan-out, pipeline, gates) with safe aggregation
+- Use background subagents effectively (and understand their limitations)
 
-### Slide 3: The Subagent Paradigm
+### Slide 3: What Subagents Are (and Why They Matter)
+**Definition (Claude Code):**
+- A subagent is a **specialized AI assistant** that runs in its **own context window** with:
+  - a custom system prompt
+  - explicit tool access and permissions
+  - an optional model choice (cost/speed control)
 
-**What Are Subagents?**
-```yaml
-# Claude can spawn specialized child agents
-Parent Agent
-├── Subagent A (code reviewer)  
-├── Subagent B (test generator)
-├── Subagent C (security scanner)
-└── Subagent D (docs writer)
-```
+**Why they’re powerful**
+- **Context preservation:** exploration and verbose output stays out of your main thread
+- **Constraints:** principle of least privilege via tool allow/deny lists
+- **Reuse:** user-level agents work across projects
+- **Specialization:** focused system prompts produce more consistent results
 
-**Core Benefits**
-- **Context Isolation**: Child agents don't pollute parent context
-- **Specialization**: Different tools/models for different tasks
-- **Parallelization**: Multiple agents work simultaneously
-- **Resilience**: Failed subagent doesn't crash parent
+Docs: <https://code.claude.com/docs/en/sub-agents>
 
-**When to Use Subagents**
-- Complex multi-domain tasks (security + performance + testing)
-- Long-running operations that need parallel execution
-- Isolated workflows that shouldn't affect main context
-- Tasks requiring different tool sets or model strengths
+### Slide 4: Built-in Subagents You’ll See
+Claude Code ships with built-in subagents and uses them automatically when appropriate:
+- **Explore** (Haiku, read-only): codebase search / discovery (no Write/Edit)
+- **Plan** (read-only): used in plan mode for research
+- **general-purpose** (inherits model, all tools): complex multi-step tasks
 
-### Slide 4: Configuring Subagents
+Key constraints:
+- **Subagents cannot spawn other subagents** (no nesting). Design pipelines accordingly.
 
-**Subagent Configuration Options**
-```yaml
-# .claude/subagents/code-reviewer.yaml
-name: code-reviewer
-description: Specialized code reviewer focused on quality and best practices
-tools: [read, edit, bash, task]  # Restricted tool set
-model: haiku  # Cheaper model for routine reviews
-context: fork  # Isolated from parent
+Docs: <https://code.claude.com/docs/en/sub-agents#built-in-subagents>
+
+### Slide 5: Where Subagents Live (Scope + Precedence)
+Subagents are Markdown files stored in specific directories. If names collide, higher priority wins.
+
+**Priority order (highest → lowest):**
+1. `--agents` CLI flag (current session only)
+2. `.claude/agents/` (project scope)
+3. `~/.claude/agents/` (user scope)
+4. plugin `agents/` directory (where plugin is enabled)
+
+**Rule of thumb**
+- Put team/shared agents in **`.claude/agents/`** and commit them.
+- Put personal helpers in **`~/.claude/agents/`**.
+
+Docs: <https://code.claude.com/docs/en/sub-agents#choose-the-subagent-scope>
+
+### Slide 6: Subagent File Format (Markdown + YAML Frontmatter)
+A subagent is a Markdown file:
+- YAML frontmatter = configuration
+- Markdown body = the subagent’s **system prompt**
+
+**Example: `.claude/agents/code-reviewer.md`**
+```md
 ---
-You are a senior code reviewer with 10 years of experience...
+name: code-reviewer
+description: Reviews code changes for quality and best practices. Use proactively after edits.
+tools: Read, Glob, Grep
+model: sonnet
+permissionMode: default
+---
+
+You are a senior code reviewer.
+
+When invoked:
+- Read only what you need.
+- Report actionable findings with file/line references.
+- Separate MUST-FIX vs NICE-TO-HAVE.
 ```
 
-**Key Configuration Parameters**
-| Parameter | Purpose | Example Values |
-|-----------|---------|----------------|
-| `tools` | Available tools (subset) | `['read', 'edit', 'bash']` |
-| `model` | Model selection | `sonnet`, `haiku`, `opus` |
-| `context` | Context inheritance | `fork` (isolated), `current` (shared) |
-| `skills` | Inherited skills | `['typescript', 'testing']` |
+Docs: <https://code.claude.com/docs/en/sub-agents#write-subagent-files>
 
-**Tool Restriction Patterns**
-```yaml
-# Read-only reviewer (safe for untrusted code)
-tools: [read, task]
+### Slide 7: Supported Frontmatter Fields (Know What’s Real)
+Only the following frontmatter fields are supported (others may be ignored):
 
-# Editor with validation (can modify but not deploy)
-tools: [read, edit, grep]
+Required:
+- `name` — lowercase letters + hyphens
+- `description` — when Claude should delegate to this agent
 
-# Full automation (use with caution)
-tools: [read, edit, bash, task, write]
+Optional:
+- `tools` — allowlist of tool names (inherits all tools if omitted)
+- `disallowedTools` — denylist (removes from inherited/specified)
+- `model` — `haiku | sonnet | opus | inherit` (default: inherit)
+- `permissionMode` — `default | acceptEdits | dontAsk | bypassPermissions | plan`
+- `skills` — skills to **preload** into the subagent context (not inherited)
+- `hooks` — lifecycle hooks scoped to this subagent
+- `memory` — persistent memory directory scope: `user | project | local`
+
+Docs: <https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields>
+
+### Slide 8: Tools: Allowlist vs Denylist (Least Privilege)
+Subagents can use any internal tools that Claude Code supports.
+
+**Important details**
+- If `tools` is **omitted**, the subagent **inherits all tools** from the main conversation (including MCP tools).
+- You can tighten access with either:
+  - `tools` (allowlist), and/or
+  - `disallowedTools` (denylist)
+
+**Safe researcher (read-only + bash for greps/tests):**
+```md
+---
+name: safe-researcher
+description: Read-only codebase research and summarization
+tools: Read, Grep, Glob, Bash
+disallowedTools: Write, Edit
+---
+
+Research thoroughly; never propose edits unless asked.
+Return a concise summary with citations.
 ```
 
-### Slide 5: Invoking Subagents
+Docs: <https://code.claude.com/docs/en/sub-agents#available-tools>
 
-**Direct Invocation**
-```typescript
-// Spawn a subagent for specific task
-await task({
-  description: "Review authentication code",
-  prompt: `Please review src/auth/login.ts for:
-    1. Security vulnerabilities  
-    2. Input validation gaps
-    3. Error handling issues
-    
-    Return findings in structured format.`,
-  subagent_type: "code-reviewer"
-});
+### Slide 9: Permission Modes (and the Precedence Gotcha)
+`permissionMode` controls how the subagent handles permission prompts:
+- `default` — normal prompts
+- `acceptEdits` — auto-accept file edits
+- `dontAsk` — auto-deny prompts (explicitly allowed tools still work)
+- `bypassPermissions` — skip permission checks
+- `plan` — plan-mode behavior (read-only exploration)
+
+**Precedence rule:**
+- If the **parent** conversation uses `bypassPermissions`, it **takes precedence** and the subagent cannot override it.
+
+Docs: <https://code.claude.com/docs/en/sub-agents#permission-modes>
+
+### Slide 10: Skills Are Not Inherited (Preload Them)
+Subagents **do not inherit skills** from the parent session. If a subagent needs team conventions, preload them:
+
+```md
+---
+name: api-developer
+description: Implements API endpoints following team conventions
+skills:
+  - api-conventions
+  - error-handling-patterns
+---
+
+Implement endpoints following the preloaded conventions.
 ```
 
-**Parallel Invocation Pattern**
-```typescript
-// Launch multiple subagents simultaneously
-const reviews = await Promise.all([
+Best practice:
+- Keep the agent prompt short; put detailed conventions in skills.
+
+Docs:
+- Subagents skills field: <https://code.claude.com/docs/en/sub-agents#preload-skills-into-subagents>
+- Skills overview: <https://code.claude.com/docs/en/skills>
+
+### Slide 11: Persistent Memory (Cross-Session Learnings)
+The `memory` field gives the subagent a persistent directory it can read/write across conversations.
+
+```md
+---
+name: code-reviewer
+description: Reviews code and remembers recurring issues
+memory: user
+---
+
+Before reviewing, consult your memory for project patterns.
+After reviewing, store any new recurring issues and conventions.
+```
+
+Scopes:
+- `user` → `~/.claude/agent-memory/<agent-name>/`
+- `project` → `.claude/agent-memory/<agent-name>/` (shareable)
+- `local` → `.claude/agent-memory-local/<agent-name>/` (don’t commit)
+
+Note:
+- When memory is enabled, Claude Code automatically enables **Read/Write/Edit** so the agent can manage its memory files.
+
+Docs: <https://code.claude.com/docs/en/sub-agents#enable-persistent-memory>
+
+### Slide 12: Hooks for Guardrails (Optional, Powerful)
+Subagents can define hooks in their own frontmatter.
+
+Common events:
+- `PreToolUse` — validate before tool runs
+- `PostToolUse` — follow-up actions after tool runs
+- `Stop` — runs when subagent finishes (converted to `SubagentStop` at runtime)
+
+**Example: block dangerous Bash commands**
+```md
+---
+name: db-reader
+description: Execute read-only database queries
+tools: Bash
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "./scripts/validate-readonly-query.sh"
+---
+
+Only run SELECT queries. If a query is not read-only, refuse.
+```
+
+Docs:
+- Subagent hooks: <https://code.claude.com/docs/en/sub-agents#define-hooks-for-subagents>
+- Hooks reference: <https://code.claude.com/docs/en/hooks>
+
+### Slide 13: How Delegation Actually Happens
+Claude delegates based on:
+- what you ask for
+- the subagent’s `description`
+- current context
+
+**Make delegation more reliable**
+- Write descriptions that are:
+  - specific (“review recent changes for auth + secrets exposure”)
+  - directive (“use proactively after edits”)
+- Explicitly request an agent when needed:
+  - “Have the **code-reviewer** subagent review my changes”
+
+Docs: <https://code.claude.com/docs/en/sub-agents#understand-automatic-delegation>
+
+### Slide 14: Background vs Foreground Subagents
+Subagents can run:
+- **Foreground**: blocks main chat; permission prompts and questions are passed through.
+- **Background**: runs concurrently.
+
+Background limitations (design around these):
+- Claude Code pre-prompts for permissions up front; anything not approved is auto-denied.
+- If the subagent needs to ask clarifying questions, those tool calls fail but the agent continues.
+- **MCP tools are not available in background subagents.**
+
+Docs: <https://code.claude.com/docs/en/sub-agents#run-subagents-in-foreground-or-background>
+
+### Slide 15: Delegation Patterns That Scale (Best Practices)
+**1) Fan-out → aggregate (independent analyses)**
+- Security + performance + test coverage can run in parallel
+
+**2) Pipeline (dependent steps)**
+- Explore → plan → implement → verify
+
+**3) Approval gates for risky actions**
+- Separate “recommend” agent from “execute” agent
+
+**4) Isolate high-volume output**
+- Run tests/log processing in a subagent; return only a summary
+
+Docs: <https://code.claude.com/docs/en/sub-agents#common-patterns>
+
+### Slide 16: Example — Parallel Review Pipeline (matches this module’s exercise)
+In code, you typically fan-out with `Promise.all()` and then aggregate.
+
+```ts
+import { task } from '@anthropic-ai/claude-code';
+
+const [security, perf, coverage] = await Promise.all([
   task({
-    description: "Security review",
-    prompt: "Review for security vulnerabilities...",
-    subagent_type: "security-scanner"
+    description: 'Security review',
+    prompt: 'Review for auth flaws, injection, secrets exposure. Return JSON.',
+    subagent_type: 'security-scanner',
   }),
   task({
-    description: "Performance analysis", 
-    prompt: "Analyze for performance bottlenecks...",
-    subagent_type: "performance-expert"
+    description: 'Performance review',
+    prompt: 'Find hotspots, N+1 patterns, sync I/O, memory bloat. Return JSON.',
+    subagent_type: 'performance-expert',
   }),
   task({
-    description: "Test coverage check",
-    prompt: "Verify test coverage is adequate...",
-    subagent_type: "test-generator"
-  })
+    description: 'Coverage review',
+    prompt: 'Assess tests and missing cases. Return JSON.',
+    subagent_type: 'test-coverage-checker',
+  }),
 ]);
 
-// Aggregate results
-const combinedReport = aggregateReviews(reviews);
+return aggregate({ security, perf, coverage });
 ```
 
-**Conditional Delegation**
-```typescript
-// Delegate based on task complexity
-if (isComplexFeature(featureRequest)) {
-  // Spawn specialized architecture subagent
-  await task({
-    description: "Architecture review",
-    prompt: `Analyze ${featureRequest} for architectural implications...`,
-    subagent_type: "architect-advisor"
-  });
-} else {
-  // Handle directly
-  await implementFeature(featureRequest);
-}
-```
+Best practices:
+- Put **output format requirements** in the prompt (e.g., JSON schema).
+- Always **validate** subagent output before using it.
 
-### Slide 6: Context Management Strategies
+### Slide 17: Reliability Patterns (Don’t Let Delegation Become Fragile)
+**Guardrails you should add:**
+- Per-subagent try/catch + structured error return
+- Retry with exponential backoff for transient failures
+- Timeouts for long-running tasks
+- Output validation (JSON parse + required keys)
 
-**Fork Context (Recommended Default)**
-```yaml
-# Subagent has clean slate - no parent context pollution
-context: fork
-```
-- Parent and child contexts are completely isolated
-- Subagent can't accidentally modify parent state
-- Clean slate ensures deterministic behavior
-- Best for most use cases
+**Rule:** treat subagent output like an external API response.
 
-**Current Context (Use Carefully)**
-```yaml
-# Subagent shares parent context
-context: current  
-```
-- Subagent sees parent's files, variables, conversation history
-- Use when subagent needs to build on parent's work
-- Risk: Subagent can modify parent's state
-- Use sparingly and with restricted tools
+### Slide 18: Anti-Patterns (Common Ways Teams Get Burned)
+**❌ Micro-delegation**
+- Spawning agents for tiny tasks increases overhead and decreases coherence
 
-**Hybrid Pattern**
-```typescript
-// Pass specific context to subagent
-await task({
-  description: "Refactor module",
-  prompt: `
-    Context:
-    - Module: ${modulePath}
-    - Current implementation: ${readFileSync(modulePath)}
-    - Requirements: ${requirements}
-    
-    Refactor following the requirements above.
-  `,
-  subagent_type: "refactoring-expert",
-  context: "fork"  // Still forked for isolation
-});
-```
+**❌ Over-broad tool access**
+- Avoid “all tools” unless the agent truly needs it
 
-### Slide 7: Parallel Processing Patterns
+**❌ Assuming skills are inherited**
+- Explicitly preload skills via `skills:`
 
-**Fan-Out Pattern**
-```typescript
-// Distribute work across multiple subagents
-async function analyzeCodebase(files: string[]) {
-  const batchSize = 5;
-  const results = [];
-  
-  for (let i = 0; i < files.length; i += batchSize) {
-    const batch = files.slice(i, i + batchSize);
-    
-    // Process batch in parallel
-    const batchResults = await Promise.all(
-      batch.map(file => task({
-        description: `Analyze ${file}`,
-        prompt: `Analyze ${file} for code quality issues...`,
-        subagent_type: "code-analyzer"
-      }))
-    );
-    
-    results.push(...batchResults);
-  }
-  
-  return aggregateResults(results);
-}
-```
+**❌ Backgrounding tasks that require MCP/tools/questions**
+- Background agents can’t use MCP tools and can’t AskUserQuestion successfully
 
-**Pipeline Pattern**
-```typescript
-// Chain subagents where output of one feeds into next
-async function complexRefactor(file: string) {
-  // Step 1: Analyze
-  const analysis = await task({
-    description: "Analyze for refactoring",
-    prompt: `Analyze ${file} for refactoring opportunities...`,
-    subagent_type: "code-analyzer"
-  });
-  
-  // Step 2: Generate tests first (TDD)
-  await task({
-    description: "Generate tests",
-    prompt: `Based on this analysis: ${analysis}, generate tests...`,
-    subagent_type: "test-generator"
-  });
-  
-  // Step 3: Refactor
-  await task({
-    description: "Execute refactor",
-    prompt: `Refactor ${file} according to plan: ${analysis}...`,
-    subagent_type: "refactoring-expert"
-  });
-  
-  // Step 4: Verify
-  return await task({
-    description: "Verify refactor",
-    prompt: `Verify the refactored code passes all tests...`,
-    subagent_type: "code-reviewer"
-  });
-}
-```
+### Slide 19: Practical Setup Checklist
+1. Create subagents with `/agents` (recommended) or manually in `.claude/agents/`
+2. Start with minimal tools (Read/Grep/Glob) and expand only when needed
+3. Encode expectations in the prompt body:
+   - output format
+   - “cite file/line”
+   - “return MUST-FIX vs NICE-TO-HAVE”
+4. If needed, add:
+   - `skills` for conventions
+   - `hooks` for guardrails
+   - `memory` for long-term learning
 
-### Slide 8: Enterprise Security Patterns
+### Slide 20: Summary
+Key takeaways:
+- Subagents = specialization + isolation + safer scaling
+- Scope precedence matters: CLI > project > user > plugin
+- Use only supported fields; prefer least privilege tools
+- Skills are **not inherited**; preload them explicitly
+- Use fan-out/pipeline/gates, validate outputs, and handle failures
 
-**Principle of Least Privilege**
-```yaml
-# Security scanner - read-only to prevent accidents
-tools: [read, grep]
----
-You are a security scanner. You can only READ code, never modify it.
-Focus on: SQL injection, XSS, authentication flaws, secrets exposure
-```
-
-**Approval Gates for Destructive Operations**
-```typescript
-// High-risk subagent requires approval
-async function deployToProduction() {
-  const approval = await task({
-    description: "Get deployment approval",
-    prompt: "Review deployment plan and return approved/rejected...",
-    subagent_type: "approval-gate"
-  });
-  
-  if (approval !== "approved") {
-    throw new Error("Deployment not approved");
-  }
-  
-  // Proceed with deployment
-}
-```
-
-**Audit Logging Pattern**
-```yaml
-# All subagent actions logged
-audit:
-  log_level: detailed
-  retention: 90_days
-  include_context: true
-```
-
-### Slide 9: Error Handling & Resilience
-
-**Graceful Degradation**
-```typescript
-async function resilientAnalysis(file: string) {
-  try {
-    // Try primary subagent
-    return await task({
-      description: "Security scan",
-      prompt: `Security analysis of ${file}...`,
-      subagent_type: "security-scanner",
-      timeout: 30000
-    });
-  } catch (error) {
-    // Fall back to simpler approach
-    console.warn("Security scanner failed, using basic check");
-    return await basicSecurityCheck(file);
-  }
-}
-```
-
-**Retry Logic with Exponential Backoff**
-```typescript
-async function retryableTask(prompt: string, maxRetries = 3) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await task({
-        description: "Retryable operation",
-        prompt: prompt,
-        subagent_type: "reliable-worker"
-      });
-    } catch (error) {
-      if (attempt === maxRetries) throw error;
-      
-      const delay = Math.pow(2, attempt) * 1000;  // 2s, 4s, 8s
-      await sleep(delay);
-    }
-  }
-}
-```
-
-**Circuit Breaker Pattern**
-```typescript
-class SubagentCircuitBreaker {
-  private failures = 0;
-  private lastFailure: Date | null = null;
-  private threshold = 5;
-  private timeout = 60000; // 1 minute
-  
-  async invoke(prompt: string) {
-    if (this.isOpen()) {
-      throw new Error("Circuit breaker is open - subagent unavailable");
-    }
-    
-    try {
-      const result = await task({
-        description: "Circuit breaker protected",
-        prompt: prompt,
-        subagent_type: "protected-service"
-      });
-      this.onSuccess();
-      return result;
-    } catch (error) {
-      this.onFailure();
-      throw error;
-    }
-  }
-}
-```
-
-### Slide 10: Debugging Subagent Interactions
-
-**Logging Best Practices**
-```typescript
-// Always log subagent invocations
-async function loggedTask(description: string, prompt: string) {
-  console.log(`[Subagent] Starting: ${description}`);
-  const startTime = Date.now();
-  
-  try {
-    const result = await task({
-      description: description,
-      prompt: prompt,
-      subagent_type: "worker"
-    });
-    
-    console.log(`[Subagent] Success: ${description} (${Date.now() - startTime}ms)`);
-    return result;
-  } catch (error) {
-    console.error(`[Subagent] Failed: ${description} - ${error.message}`);
-    throw error;
-  }
-}
-```
-
-**Tracing Subagent Calls**
-```yaml
-# Enable detailed tracing
-tracing:
-  enabled: true
-  level: verbose
-  include_context: true
-  include_prompts: true
-```
-
-**Common Failure Modes**
-1. **Tool Not Available**: Subagent requests tool not in its allowed set
-2. **Context Overflow**: Subagent hits token limit on large inputs
-3. **Timeout**: Operation takes longer than expected
-4. **Model Mismatch**: Wrong model selected for task complexity
-
-### Slide 11: Common Anti-Patterns
-
-**❌ Over-Delegating**
-```typescript
-// Bad: Too granular - overhead exceeds benefit
-await task({ description: "Check semicolon", ... });
-await task({ description: "Check indentation", ... });
-await task({ description: "Check variable names", ... });
-```
-
-**✅ Right-Sized Delegation**
-```typescript
-// Good: Meaningful task worth the overhead
-await task({ 
-  description: "Code style review", 
-  prompt: "Check all style issues in file...",
-  ... 
-});
-```
-
-**❌ Ignoring Failures**
-```typescript
-// Bad: Silent failure
-await task({ ... });  // Ignoring return value and errors
-```
-
-**✅ Proper Error Handling**
-```typescript
-// Good: Explicit handling
-try {
-  const result = await task({ ... });
-  validateResult(result);
-} catch (error) {
-  handleSubagentFailure(error);
-}
-```
-
-**❌ Context Leakage**
-```yaml
-# Bad: Subagent can see parent's sensitive context
-context: current
-tools: [read, edit, bash]  # Can read parent's env vars!
-```
-
-**✅ Proper Isolation**
-```yaml
-# Good: Clean slate
-tools: [read, edit]  # Minimal required tools
-context: fork
-```
-
-### Slide 12: Practical Implementation Steps
-
-**Step 1: Define Subagent Roles**
-```yaml
-# Create .claude/subagents/ directory with:
-# - code-reviewer.yaml
-# - security-scanner.yaml
-# - test-generator.yaml
-# - performance-expert.yaml
-```
-
-**Step 2: Start with Restricted Tools**
-```yaml
-# Begin with read-only, add tools as needed
-tools: [read]
-# Then: tools: [read, grep]
-# Then: tools: [read, grep, task]
-```
-
-**Step 3: Build Up Complexity Gradually**
-1. Single subagent for isolated task
-2. Parallel subagents for independent work
-3. Pipeline subagents for dependent workflows
-4. Dynamic subagent selection based on task type
-
-**Step 4: Monitor and Optimize**
-- Track subagent success rates
-- Measure context window savings
-- Monitor latency and throughput
-- Refine based on real usage
-
-### Slide 13: Advanced Patterns
-
-**Dynamic Subagent Selection**
-```typescript
-function selectSubagent(taskType: string) {
-  const subagentMap = {
-    'security': 'security-scanner',
-    'performance': 'performance-expert',
-    'testing': 'test-generator',
-    'refactoring': 'refactoring-expert',
-    'documentation': 'docs-writer'
-  };
-  
-  return subagentMap[taskType] || 'general-purpose';
-}
-
-// Usage
-await task({
-  description: "Analyze task",
-  prompt: `Perform ${taskType} analysis...`,
-  subagent_type: selectSubagent(taskType)
-});
-```
-
-**Subagent Composition**
-```yaml
-# Master orchestrator coordinates specialists
-name: feature-implementer
-description: End-to-end feature implementation coordinator
-skills: [architect-advisor, code-reviewer, test-generator]
----
-You coordinate multiple subagents to implement features...
-```
-
-### Slide 14: Summary & Key Takeaways
-
-**Core Principles**
-1. **Fork by Default**: Always start with isolated context
-2. **Minimal Tools**: Grant only tools subagent needs
-3. **Right-Size Tasks**: Delegate meaningful chunks, not micro-tasks
-4. **Handle Failures**: Always plan for subagent failures
-5. **Monitor Everything**: Log and trace all subagent interactions
-
-**Performance Impact**
-- 60% faster complex task completion
-- 70% reduction in context window bloat
-- Unlimited scalability through parallelization
-
-**Security Benefits**
-- Isolated execution prevents context leakage
-- Tool restrictions limit blast radius
-- Audit trails for compliance
+Further reading:
+- Subagents: <https://code.claude.com/docs/en/sub-agents>
+- Hooks: <https://code.claude.com/docs/en/hooks>
+- Skills: <https://code.claude.com/docs/en/skills>
 
 ---
-*Video Duration: 12 minutes*
+*Video Duration: ~12 minutes*  
+*Exercise: implement a parallel review pipeline using three specialist subagents.*

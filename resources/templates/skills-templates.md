@@ -1,13 +1,15 @@
 # Skills Quick Reference
 
-## 🎯 Core Commands
+## 🎯 Core Operations (doc-backed)
 
-| Skill Operation | Command | Description | Example |
-|-------------|----------|---------|
-| **Create skill** | `skill-create your-skill-name` | Creates skill directory and SKILL.md |
-| **List skills** | `/skills` or `/agents` | Shows all available skills/subagents |
-| **Invoke skill** | `/your-skill-name` | Manually trigger a skill |
-| **Edit skill** | `/edit your-skill-name` | Opens skill in editor for modification |
+Skills/slash commands are defined by **files/folders in your repo or user config**, not by a special `skill-create` CLI.
+
+Common operations:
+- **Create a skill**: add a new skill directory + `SKILL.md` in the location Claude Code docs specify for slash commands.
+- **Invoke a skill**: run it as a **slash command** in interactive mode (e.g. `/<name> ...`).
+- **Discover commands**: use Claude Code’s interactive help / command discovery UI (varies by version).
+
+If you’re teaching teams, the safe guideline is: **only document commands/paths that are explicitly in the official docs**, and link to those pages from your training.
 
 ## 🧩 Skill Types
 

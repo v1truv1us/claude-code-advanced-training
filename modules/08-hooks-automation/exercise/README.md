@@ -1,35 +1,34 @@
 # Module 08 Exercise: Automated Quality Gates
 
 ## 🎯 Objective
-Build a complete pre-commit hook system that enforces team standards: no secrets, passing tests, and code coverage thresholds.
+Build a Claude Code **hooks-based quality gate** system that enforces team standards during Claude’s workflow: prevent obvious secrets from being written, and automatically run checks after edits.
 
 ## 📋 Prerequisites
 - Completed Modules 1-7
-- Understanding of YAML configuration
-- Familiarity with testing frameworks
+- Familiarity with JSON (`settings.json`) configuration
+- Familiarity with running tests/lint (any stack)
 
 ## 🏗️ Exercise Structure
 
-### Part 1: Create Pre-Save Secret Detection Hook (25 min)
-Build a hook that:
-- Scans files before saving
-- Detects common secret patterns (API keys, passwords, tokens)
-- Blocks save if secrets detected
-- Provides clear error messages with line numbers
+### Part 1: Block risky writes (25 min)
+Build a **PreToolUse** hook that:
+- Inspects pending `Write` / `Edit` tool usage (via stdin JSON)
+- Detects common secret patterns (API keys, tokens, passwords)
+- **Blocks** the action when a likely secret is detected (exit code `2`)
+- Provides a clear, actionable error message
 
-### Part 2: Create Pre-Commit Test Runner (25 min)
-Build a hook that:
-- Runs test suite before commits
-- Verifies all tests pass
-- Checks code coverage meets threshold (80%)
-- Blocks commit if tests fail or coverage is low
+### Part 2: Auto-run checks after edits (25 min)
+Build a **PostToolUse** hook (matcher `Edit|Write`) that:
+- Extracts the edited file path from stdin JSON
+- Runs a fast quality command (examples: `npm test -s`, `pnpm lint`, `ruff`, etc.)
+- Emits results to stdout/stderr so Claude can react
 
-### Part 3: Add Smart Filtering & Performance (20 min)
+### Part 3: Add filtering & performance (20 min)
 Enhance with:
-- File pattern filtering (only check relevant files)
-- Incremental checking (only changed files)
-- Parallel execution for speed
-- Caching for repeated validations
+- Path filtering (only run on relevant files)
+- Fast-fail on obvious issues
+- Optional caching (hash file → skip repeat checks)
+- Clear logging so teams can debug hook behavior
 
 ## 🚀 Success Criteria
 
@@ -41,7 +40,7 @@ Enhance with:
 ✅ Hooks complete in under 10 seconds  
 
 ### Code Quality
-✅ Hooks use fail_action: block appropriately  
+✅ Hooks block correctly using exit code `2` (doc behavior)  
 ✅ Scripts are well-documented  
 ✅ Proper error handling with fallbacks  
 ✅ Performance optimized with caching/filtering  
@@ -130,9 +129,9 @@ After completing this exercise, you'll understand:
 ## 📝 Submission
 
 Submit:
-1. Your hook YAML configurations
+1. Your `settings.json` (or snippet) showing the `hooks` block
 2. Hook script implementations
-3. Test results showing hooks catching issues
+3. Example output showing a blocked write and a successful post-edit check
 4. Performance metrics (execution time)
 5. Brief writeup of design decisions
 
