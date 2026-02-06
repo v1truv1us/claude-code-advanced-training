@@ -17,3 +17,8 @@ Output requirements for patches:
 - List files to change.
 - Provide patch-ready replacement snippets.
 - Note any new starter files that must be added.
+
+Example usage:
+```bash
+use-subagent /claude/agents/training-writer.md --project claude-code-advanced-training --prompt "Update training repo modules with doc-aligned best practices"
+```
