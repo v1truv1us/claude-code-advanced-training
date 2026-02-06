@@ -308,7 +308,7 @@ set -e
 
 echo "🚀 Setting up Claude Code skills for COMPANY_NAME..."
 
-# Create ~/.claude directory if not exists
+# Create ~/.claude skills directory if not exists
 mkdir -p ~/.claude/skills
 
 # Clone or update skills repository
@@ -323,13 +323,21 @@ fi
 
 # Install base skills
 echo "🔧 Installing base skills..."
-ln -sf ~/.claude/company-skills/base/*.md ~/.claude/skills/
+for skill_dir in ~/.claude/company-skills/base/*/; do
+  [ -d "$skill_dir" ] || continue
+  skill_name=$(basename "$skill_dir")
+  ln -sfn "$skill_dir" "~/.claude/skills/$skill_name"
+done
 
 # Detect team and install team-specific skills
 TEAM=$(git config --get user.team 2>/dev/null || echo "")
-if [ -n "$TEAM" ] && [ -d "~/.claude/company-skills/teams/$TEAM" ]; then
+if [ -n "$TEAM" ] && [ -d "$HOME/.claude/company-skills/teams/$TEAM" ]; then
     echo "👥 Installing $TEAM team skills..."
-    ln -sf ~/.claude/company-skills/teams/$TEAM/*.md ~/.claude/skills/
+    for skill_dir in "$HOME/.claude/company-skills/teams/$TEAM"/*/; do
+      [ -d "$skill_dir" ] || continue
+      skill_name=$(basename "$skill_dir")
+      ln -sfn "$skill_dir" "$HOME/.claude/skills/$skill_name"
+    done
 else
     echo "⚠️  No team detected. Install team skills manually:"
     echo "   git config --global user.team frontend|backend|devops"
@@ -340,7 +348,7 @@ mkdir -p ~/.claude/company-skills/personal
 
 echo "✅ Skills installation complete!"
 echo "📚 Available skills:"
-ls -la ~/.claude/skills/*.md
+find ~/.claude/skills -maxdepth 2 -name SKILL.md -print
 ```
 
 #### Update Process
@@ -726,7 +734,7 @@ metrics:
 1. **Immediate Actions**:
    - Run the installation script: `curl -sSL https://skills.company.com/install.sh | bash`
    - Set your team: `git config --global user.team [frontend|backend|devops]`
-   - Test basic skills: `/skill list`
+   - Test a skill by invoking it as a slash command (e.g. `/<skill-name> ...`)
 
 2. **This Week**:
    - Complete team-specific onboarding

@@ -1,5 +1,5 @@
 # GitHub Actions - Claude Code Batch Processing
-# This workflow runs Claude Code in headless mode for automated batch jobs
+# This workflow runs Claude Code non-interactively (print mode: `claude -p`) for automated batch jobs
 
 name: Claude Batch Processing
 
@@ -52,10 +52,10 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       # Configure MCP servers (optional)
+      # Prefer project-scoped MCP config in the repo root: .mcp.json
       - name: Setup MCP Configuration
         run: |
-          mkdir -p ~/.config/claude
-          cat > ~/.config/claude/mcp.json << 'EOF'
+          cat > .mcp.json << 'EOF'
           {
             "mcpServers": {
               "filesystem": {
