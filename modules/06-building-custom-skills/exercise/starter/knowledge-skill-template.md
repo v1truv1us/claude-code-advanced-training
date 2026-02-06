@@ -1,28 +1,20 @@
 ---
 name: your-advanced-skill
-description: Comprehensive knowledge skill for [YOUR_TECH_STACK]
+description: Comprehensive reference skill for [YOUR_TECH_STACK]
+# Use fork only if you want the skill to run in an isolated subagent context
 context: fork
-model: sonnet
+# Optional: restrict tool access while this skill is active
+# allowed-tools: Read, Grep, Glob
+# Optional: hint expected args shown in / autocomplete
+# argument-hint: [topic]
+# Optional: prevent Claude from auto-invoking (recommended for workflows w/ side effects)
 disable-model-invocation: false
-environment:
-  NODE_ENV: development
-input_schema:
-  type: object
-  properties:
-    topic:
-      type: string
-      description: Specific topic within the technology stack
-    experience_level:
-      type: string
-      enum: [beginner, intermediate, advanced]
-      description: User's experience level for tailored advice
-monitoring:
-  max_execution_time: 60s
-  memory_limit: 256MB
-  log_level: info
 ---
 
 # [TECHNOLOGY NAME] Advanced Knowledge Base
+
+> This is a **reference skill** (knowledge). Prefer adding large reference docs as supporting files
+> in this skill directory (e.g., `reference.md`, `examples/`) and linking to them from here.
 
 ## Core Principles & Philosophy
 
@@ -32,9 +24,9 @@ monitoring:
 
 ## Implementation Examples
 
-## Performance Optimization
+## Performance Considerations
 
-## Security Best Practices
+## Security Considerations
 
 ## Troubleshooting Guide
 
