@@ -1,7 +1,7 @@
 # Module 10 Exercise: Batch Code Modernization
 
 ## 🎯 Objective
-Build a scalable batch processing system that modernizes legacy code across multiple files using parallel execution, headless operation, and proper resource management.
+Build a scalable batch processing system that modernizes legacy code across multiple files using parallel execution, non-interactive/print mode (`claude -p`), and proper resource management.
 
 ## 📋 Prerequisites
 - Completed Modules 1-9

@@ -119,10 +119,9 @@ After completing this exercise, you'll understand:
 - [ ] PreToolUse hook includes line numbers in errors
 - [ ] Created PostToolUse hook that runs tests
 - [ ] PostToolUse hook verifies 80% coverage threshold (or your team standard)
-- [ ] Added file filtering (only check relevant files)
-- [ ] Implemented incremental checking (only changed files)
+- [ ] Added path filtering (only check relevant files)
 - [ ] Added performance logging
-- [ ] Tested with sample files in starter/sample-code/
+- [ ] Tested with sample files in `starter/sample-code/`
 - [ ] All hooks complete in under 10 seconds
 
 ## 📝 Submission
