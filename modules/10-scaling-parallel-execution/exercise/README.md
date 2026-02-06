@@ -34,6 +34,7 @@ Implement:
 ## 🚀 Success Criteria
 
 ### Functional Requirements
+✅ Discovers 50+ files in sample directory  
 ✅ Discovers legacy patterns in the provided sample directory  
 ✅ Processes files in parallel (4+ concurrent workers)  
 ✅ Completes batch in under 5 minutes  

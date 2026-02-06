@@ -1,0 +1,9 @@
+{
+  "name": "claude-md-sample-project",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "lint": "node -c src/index.js"
+  }
+}

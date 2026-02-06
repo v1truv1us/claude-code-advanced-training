@@ -5,7 +5,12 @@ Use Plan Mode to plan a new comment moderation feature for a React blog applicat
 
 ## 📋 Scenario
 
-You have a React blog with existing comments functionality. Your team wants to add:
+You have a React blog with existing comments functionality.
+
+Use the included starter codebase at:
+- `exercise/starter/react-blog/`
+
+That repo contains a basic localStorage-backed comment system to explore and plan around. Your team wants to add:
 - Real-time profanity filtering
 - Comment threading and replies
 - Character limits and warnings

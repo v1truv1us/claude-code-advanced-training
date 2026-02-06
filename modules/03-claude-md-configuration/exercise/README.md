@@ -9,6 +9,10 @@ Practice creating **project memory** that stays useful (and small) by using:
 ## 📋 What you’ll build
 A minimal, doc-aligned Claude Code configuration for a sample repo.
 
+Use the included example project at:
+- `exercise/starter/sample-project/`
+
+You’ll add `.claude/CLAUDE.md` and `.claude/rules/*.md` to that project.
 ## 🏗️ Steps
 1) Create `.claude/CLAUDE.md` with:
    - how to run tests/lint
